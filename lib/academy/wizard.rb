@@ -29,6 +29,10 @@ class Wizard
 	end
 
 	def run!
+		
+
+
+
 		@main.run
 	end
 

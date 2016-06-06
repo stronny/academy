@@ -6,36 +6,32 @@ class Step
 		name = File.basename(fn, '.step').to_sym
 		step = new wizard, name
 		code = open(fn) {|fd| fd.read}
-		step.instance_eval code
+		step.instance_eval code, fn
 		step
 	end
 
-	attr_reader :name, :depends, :result
+	attr_reader :name, :result
 	def initialize wizard, name
 		@wizard = wizard
 		@result = nil
 		@name = name
-#		@upstream = {}
-#		@downstream = {}
-		@step_result_block = method :nil_result
+		@step_result_block          = method :nil_result
+		@new_dependency_value_block = method :nil_result
 	end
-
-#	def add_downstream step, value
-#		@downstream[step] = value
-#	end
 
 	def run
 		@result = @step_result_block.call
-		@wizard.my_downstream(self).each { |name, value| @wizard.step(name).run if result_matches? value }
-#		@downstream.each { |step, value| step.run if result_matches? value }
 	end
-
-protected
 
 	def result_matches? value
 		return true if value == Anything
-		value === @result
+		return true if value === @result
+		sv = (value.is_a? Symbol) ? value.to_s : value
+		sr = (@result.is_a? Symbol) ? @result.to_s : @result
+		sv == sr
 	end
+
+protected
 
 	def nil_result
 		nil
@@ -48,15 +44,17 @@ protected
 	def depends steps = {}
 		steps.each do |name, value|
 			@wizard.add_dependency self, name, value
-#			step = @wizard.step name
-#			@upstream[step] = value
-#			step.add_downstream self, value
 		end
 	end
 
 	def step_result &block
 		return unless block_given?
 		@step_result_block = block
+	end
+
+	def new_dependency_value &block
+		return unless block_given?
+		@new_dependency_value_block = block
 	end
 
 end

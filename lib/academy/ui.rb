@@ -1,12 +1,10 @@
-require 'open3'
-
 module Academy
 module UI
 
 	def self.menu title, opts = {}
 		return nil if opts.count < 1
 		return opts.keys.first if opts.count < 2
-		opt = whiptail [:menu, :nocancel, :notags], title, 0, 0, 0, *opts.flatten
+		whiptail [:menu, :notags, 'ok-button=Next', 'cancel-button=Back'], title, 0, 0, 0, *opts.flatten
 	end
 
 protected
@@ -16,12 +14,17 @@ protected
 		cmd += opts.map { |o| '--%s' % o.to_s }
 		cmd.push '--'
 		cmd += args.map { |a| a.to_s }
-#		el = Open3.popen3(*cmd) do |i, o, e, t|
-#			t.value
-#		end
 
-#		p el
+		status, out = IO.pipe do |r, w|
+			pid = spawn *cmd, err: w
+			w.close
+			out = r.read
+			pid, status = Process.wait2 pid
+			[status, out]
+		end
 
+		return nil if status.exitstatus > 0
+		out
 	end
 
 end
